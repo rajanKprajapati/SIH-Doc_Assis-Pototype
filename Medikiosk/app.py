@@ -3,15 +3,10 @@ import streamlit as st
 from ai.history_engine import get_questions
 from utils.red_flags import detect_red_flags
 
-if "history_answers" not in st.session_state:
-    st.session_state.history_answers = {}
 
-if "history_index" not in st.session_state:
-    st.session_state.history_index = 0
-
-# -----------------------------
+# =========================================================
 # PAGE CONFIGURATION
-# -----------------------------
+# =========================================================
 
 st.set_page_config(
     page_title="MediKiosk",
@@ -20,12 +15,9 @@ st.set_page_config(
 )
 
 
-# -----------------------------
+# =========================================================
 # SESSION STATE
-# -----------------------------
-
-if "red_flags" not in st.session_state:
-    st.session_state.red_flags = []
+# =========================================================
 
 if "step" not in st.session_state:
     st.session_state.step = 1
@@ -42,21 +34,29 @@ if "patient" not in st.session_state:
 if "chief_complaint" not in st.session_state:
     st.session_state.chief_complaint = None
 
+if "history_answers" not in st.session_state:
+    st.session_state.history_answers = {}
 
-# -----------------------------
-# HELPER FUNCTION
-# -----------------------------
+if "history_index" not in st.session_state:
+    st.session_state.history_index = 0
+
+if "red_flags" not in st.session_state:
+    st.session_state.red_flags = []
+
+
+# =========================================================
+# HELPER
+# =========================================================
 
 def next_step():
     st.session_state.step += 1
 
 
-# -----------------------------
+# =========================================================
 # HEADER
-# -----------------------------
+# =========================================================
 
 st.title("🏥 MediKiosk")
-
 st.caption("AI Clinical Intake Platform")
 
 st.divider()
@@ -76,8 +76,7 @@ if st.session_state.step == 1:
     )
 
     st.info(
-        "You can answer questions using simple selections. "
-        "Voice input will be added later."
+        "You can answer questions using simple selections."
     )
 
     if st.button(
@@ -119,42 +118,22 @@ elif st.session_state.step == 3:
     st.header("🔐 Consent")
 
     st.write(
-        "Before continuing, please understand that MediKiosk "
-        "will collect your health information to prepare "
-        "your medical history for the doctor."
-    )
-
-    st.info(
-        "Your information is collected only for the "
-        "clinical intake process in this prototype."
+        "MediKiosk will collect your health information "
+        "to prepare your medical history for the doctor."
     )
 
     consent = st.checkbox(
         "I understand and agree to provide my information."
     )
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        if st.button(
-            "I Agree",
-            disabled=not consent,
-            use_container_width=True
-        ):
-            st.session_state.consent = True
-            next_step()
-            st.rerun()
-
-    with col2:
-
-        if st.button(
-            "I Don't Agree",
-            use_container_width=True
-        ):
-            st.error(
-                "Consent is required to continue."
-            )
+    if st.button(
+        "I Agree",
+        disabled=not consent,
+        use_container_width=True
+    ):
+        st.session_state.consent = True
+        next_step()
+        st.rerun()
 
 
 # =========================================================
@@ -165,9 +144,7 @@ elif st.session_state.step == 4:
 
     st.header("👤 Patient Information")
 
-    name = st.text_input(
-        "Full Name"
-    )
+    name = st.text_input("Full Name")
 
     age = st.number_input(
         "Age",
@@ -192,9 +169,7 @@ elif st.session_state.step == 4:
 
         if not name.strip():
 
-            st.warning(
-                "Please enter your name."
-            )
+            st.warning("Please enter your name.")
 
         else:
 
@@ -217,13 +192,8 @@ elif st.session_state.step == 5:
 
     st.header("🩺 What brings you to the hospital?")
 
-    st.write(
-        "Select the problem that best describes "
-        "your main concern."
-    )
-
     complaint = st.radio(
-        "Main complaint:",
+        "Select your main complaint:",
         [
             "Chest Pain",
             "Fever",
@@ -246,7 +216,7 @@ elif st.session_state.step == 5:
 
 
 # =========================================================
-# STEP 6 — READY FOR HISTORY
+# STEP 6 — READY
 # =========================================================
 
 elif st.session_state.step == 6:
@@ -279,8 +249,8 @@ elif st.session_state.step == 6:
     st.divider()
 
     st.info(
-        "The next step will ask questions about "
-        "your medical problem."
+        "The next step will ask questions "
+        "about your medical problem."
     )
 
     if st.button(
@@ -290,6 +260,7 @@ elif st.session_state.step == 6:
 
         st.session_state.step = 7
         st.rerun()
+
 
 # =========================================================
 # STEP 7 — CLINICAL HISTORY
@@ -305,84 +276,91 @@ elif st.session_state.step == 7:
 
     current_index = st.session_state.history_index
 
-    # -----------------------------------------
-    # All questions completed
-    # -----------------------------------------
 
-if current_index >= len(questions):
+    # =====================================================
+    # ALL QUESTIONS COMPLETED
+    # =====================================================
 
-    st.success("Clinical history completed.")
-
-    st.write("### Structured History")
-
-    st.json(
-        st.session_state.history_answers
-    )
-
-    # -----------------------------------------
-    # RED-FLAG DETECTION
-    # -----------------------------------------
-
-    flags = detect_red_flags(
-        st.session_state.chief_complaint,
-        st.session_state.history_answers
-    )
-
-    st.session_state.red_flags = flags
-
-    st.divider()
-
-    st.write("### Clinical Priority Check")
-
-    if flags:
-
-        for flag in flags:
-
-            if flag["severity"] == "HIGH":
-
-                st.error(
-                    f"🚨 HIGH PRIORITY\n\n"
-                    f"{flag['message']}"
-                )
-
-            else:
-
-                st.warning(
-                    f"⚠️ {flag['severity']} PRIORITY\n\n"
-                    f"{flag['message']}"
-                )
-
-    else:
+    if current_index >= len(questions):
 
         st.success(
-            "No predefined red flags detected."
+            "Clinical history completed."
         )
 
-    st.info(
-        "This system does not provide a diagnosis. "
-        "A qualified healthcare professional must "
-        "evaluate the patient."
-    )
+        st.write("### Structured History")
 
-    if st.button(
-        "Continue →",
-        use_container_width=True
-    ):
+        st.json(
+            st.session_state.history_answers
+        )
 
-        st.session_state.step = 8
-        st.rerun()
+        # ---------------------------------------------
+        # RED FLAG DETECTION
+        # ---------------------------------------------
 
-    # -----------------------------------------
-    # Ask current question
-    # -----------------------------------------
+        flags = detect_red_flags(
+            complaint,
+            st.session_state.history_answers
+        )
+
+        st.session_state.red_flags = flags
+
+        st.divider()
+
+        st.write("### 🚦 Clinical Priority Check")
+
+        if flags:
+
+            for flag in flags:
+
+                if flag["severity"] == "HIGH":
+
+                    st.error(
+                        f"🚨 HIGH PRIORITY\n\n"
+                        f"{flag['message']}"
+                    )
+
+                else:
+
+                    st.warning(
+                        f"⚠️ {flag['severity']} PRIORITY\n\n"
+                        f"{flag['message']}"
+                    )
+
+        else:
+
+            st.success(
+                "No predefined red flags detected."
+            )
+
+        st.info(
+            "This system does not provide a diagnosis. "
+            "A qualified healthcare professional must "
+            "evaluate the patient."
+        )
+
+        if st.button(
+            "Continue →",
+            use_container_width=True
+        ):
+
+            st.session_state.step = 8
+            st.rerun()
+
+
+    # =====================================================
+    # ASK CURRENT QUESTION
+    # =====================================================
 
     else:
 
         current_question = questions[current_index]
 
-        st.progress(
-            (current_index + 1) / len(questions)
+        progress = (
+            (current_index + 1)
+            / len(questions)
         )
+
+        st.progress(progress)
 
         st.caption(
             f"Question {current_index + 1} "
@@ -395,9 +373,10 @@ if current_index >= len(questions):
 
         question_type = current_question["type"]
 
-        # -----------------------------------------
-        # TEXT QUESTION
-        # -----------------------------------------
+
+        # ---------------------------------------------
+        # TEXT
+        # ---------------------------------------------
 
         if question_type == "text":
 
@@ -406,9 +385,10 @@ if current_index >= len(questions):
                 key=f"answer_{current_question['id']}"
             )
 
-        # -----------------------------------------
-        # CHOICE QUESTION
-        # -----------------------------------------
+
+        # ---------------------------------------------
+        # CHOICE
+        # ---------------------------------------------
 
         elif question_type == "choice":
 
@@ -418,9 +398,10 @@ if current_index >= len(questions):
                 key=f"answer_{current_question['id']}"
             )
 
-        # -----------------------------------------
-        # YES / NO QUESTION
-        # -----------------------------------------
+
+        # ---------------------------------------------
+        # YES / NO
+        # ---------------------------------------------
 
         elif question_type == "yes_no":
 
@@ -430,9 +411,10 @@ if current_index >= len(questions):
                 key=f"answer_{current_question['id']}"
             )
 
-        # -----------------------------------------
-        # SCALE QUESTION
-        # -----------------------------------------
+
+        # ---------------------------------------------
+        # SCALE
+        # ---------------------------------------------
 
         elif question_type == "scale":
 
@@ -444,16 +426,20 @@ if current_index >= len(questions):
                 key=f"answer_{current_question['id']}"
             )
 
-        # -----------------------------------------
-        # NEXT BUTTON
-        # -----------------------------------------
+
+        # ---------------------------------------------
+        # NEXT
+        # ---------------------------------------------
 
         if st.button(
             "Next →",
             use_container_width=True
         ):
 
-            if question_type == "text" and not answer.strip():
+            if (
+                question_type == "text"
+                and not answer.strip()
+            ):
 
                 st.warning(
                     "Please provide an answer."
@@ -468,3 +454,62 @@ if current_index >= len(questions):
                 st.session_state.history_index += 1
 
                 st.rerun()
+
+
+# =========================================================
+# STEP 8 — TEMPORARY SUMMARY SCREEN
+# =========================================================
+
+elif st.session_state.step == 8:
+
+    st.header("📋 Case Ready for Doctor")
+
+    st.success(
+        "Patient history has been collected successfully."
+    )
+
+    st.write("### Patient")
+
+    st.write(
+        f"**Name:** "
+        f"{st.session_state.patient.get('name', '')}"
+    )
+
+    st.write(
+        f"**Age:** "
+        f"{st.session_state.patient.get('age', '')}"
+    )
+
+    st.write(
+        f"**Complaint:** "
+        f"{st.session_state.chief_complaint}"
+    )
+
+    st.write("### Clinical History")
+
+    st.json(
+        st.session_state.history_answers
+    )
+
+    if st.session_state.red_flags:
+
+        st.write("### 🚨 Priority Alerts")
+
+        for flag in st.session_state.red_flags:
+
+            st.error(
+                f"{flag['severity']}: "
+                f"{flag['message']}"
+            )
+
+    else:
+
+        st.success(
+            "No predefined red flags detected."
+        )
+
+    st.divider()
+
+    st.info(
+        "AI physician summary will be added in Stage 6."
+    )
