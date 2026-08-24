@@ -2,6 +2,7 @@ import streamlit as st
 
 from ai.history_engine import get_questions
 from utils.red_flags import detect_red_flags
+from ai.summary import generate_clinical_summary
 
 
 # =========================================================
@@ -18,6 +19,8 @@ st.set_page_config(
 # =========================================================
 # SESSION STATE
 # =========================================================
+if "clinical_summary" not in st.session_state:
+    st.session_state.clinical_summary = None
 
 if "step" not in st.session_state:
     st.session_state.step = 1
@@ -140,7 +143,7 @@ elif st.session_state.step == 3:
 # STEP 4 — PATIENT DETAILS
 # =========================================================
 
-elif st.session_state.step == 4:
+elif st.session_state.step == 4 :
 
     st.header("👤 Patient Information")
 
@@ -457,59 +460,106 @@ elif st.session_state.step == 7:
 
 
 # =========================================================
-# STEP 8 — TEMPORARY SUMMARY SCREEN
+# STEP 8 — AI CLINICAL SUMMARY
 # =========================================================
 
 elif st.session_state.step == 8:
 
-    st.header("📋 Case Ready for Doctor")
-
-    st.success(
-        "Patient history has been collected successfully."
-    )
-
-    st.write("### Patient")
+    st.header("🤖 Clinical Summary")
 
     st.write(
-        f"**Name:** "
-        f"{st.session_state.patient.get('name', '')}"
+        "MediKiosk is preparing a structured "
+        "clinical history for physician review."
     )
 
-    st.write(
-        f"**Age:** "
-        f"{st.session_state.patient.get('age', '')}"
-    )
+    if st.session_state.clinical_summary is None:
 
-    st.write(
-        f"**Complaint:** "
-        f"{st.session_state.chief_complaint}"
-    )
+        with st.spinner("Generating clinical summary..."):
 
-    st.write("### Clinical History")
+            try:
 
-    st.json(
-        st.session_state.history_answers
-    )
+                summary = generate_clinical_summary(
+                    patient=st.session_state.patient,
+                    complaint=st.session_state.chief_complaint,
+                    history=st.session_state.history_answers,
+                    red_flags=st.session_state.red_flags
+                )
 
-    if st.session_state.red_flags:
+                st.session_state.clinical_summary = summary
 
-        st.write("### 🚨 Priority Alerts")
+            except Exception as e:
 
-        for flag in st.session_state.red_flags:
+                st.warning(
+                    "Gemini AI is currently unavailable."
+                )
 
-            st.error(
-                f"{flag['severity']}: "
-                f"{flag['message']}"
-            )
+                st.info(
+                    "Using a structured fallback summary "
+                    "so the patient workflow can continue."
+                )
 
-    else:
+                # -----------------------------------------
+                # FALLBACK SUMMARY
+                # -----------------------------------------
 
-        st.success(
-            "No predefined red flags detected."
+                fallback = f"""
+## CHIEF COMPLAINT
+
+{st.session_state.chief_complaint}
+
+## HISTORY OF PRESENT ILLNESS
+
+Patient reported the following information:
+
+{st.session_state.history_answers}
+
+## RELEVANT ASSOCIATED SYMPTOMS
+
+Structured symptoms were collected during the intake.
+
+## PAST HISTORY
+
+Not available in current prototype.
+
+## MEDICATIONS / ALLERGIES
+
+Not available in current prototype.
+
+## CLINICAL PRIORITY
+
+{st.session_state.red_flags}
+
+## PHYSICIAN VERIFICATION
+
+This is a structured intake summary.
+Physician verification is required.
+"""
+
+                st.session_state.clinical_summary = fallback
+
+    # -----------------------------------------
+    # DISPLAY SUMMARY
+    # -----------------------------------------
+
+    if st.session_state.clinical_summary:
+
+        st.divider()
+
+        st.markdown(
+            st.session_state.clinical_summary
         )
 
-    st.divider()
+        st.divider()
 
-    st.info(
-        "AI physician summary will be added in Stage 6."
-    )
+        st.warning(
+            "⚠️ AI/structured draft — "
+            "physician verification required."
+        )
+
+        if st.button(
+            "Continue to Case Submission →",
+            use_container_width=True
+        ):
+
+            st.session_state.step = 9
+            st.rerun()
