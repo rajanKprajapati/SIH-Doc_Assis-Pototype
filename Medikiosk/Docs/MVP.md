@@ -24,5 +24,9 @@
 8. Edit Summary
 9. Confirm Summary
 
+````
+USER_JOURNEY.md = What the user does and what the system does at each step.
+REQUIREMENTS.md = What the software must be able to do.
 
+````
 
